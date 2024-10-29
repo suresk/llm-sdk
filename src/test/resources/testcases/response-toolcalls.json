@@ -1,0 +1,30 @@
+{
+  "id": "chatcmpl-123456",
+  "object": "chat.completion",
+  "created": 1728933352,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "It is a tree!",
+        "refusal": null
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 19,
+    "completion_tokens": 10,
+    "total_tokens": 29,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "system_fingerprint": "fp_6b68a8204b"
+}
