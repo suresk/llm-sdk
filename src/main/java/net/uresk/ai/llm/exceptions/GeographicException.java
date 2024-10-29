@@ -1,11 +1,13 @@
 package net.uresk.ai.llm.exceptions;
 
-public class GeographicException extends RuntimeException
+import net.uresk.ai.llm.response.Metadata;
+
+public class GeographicException extends ApiException
 {
 
-    public GeographicException()
+    public GeographicException(Metadata metadata)
     {
-        super("Country, region, or territory unsupported. See: https://platform.openai.com/docs/supported-countries");
+        super("Country, region, or territory unsupported. See: https://platform.openai.com/docs/supported-countries", metadata);
     }
 
 }

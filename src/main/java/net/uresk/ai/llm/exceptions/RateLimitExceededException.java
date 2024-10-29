@@ -1,11 +1,13 @@
 package net.uresk.ai.llm.exceptions;
 
-public class RateLimitExceededException extends RuntimeException
+import net.uresk.ai.llm.response.Metadata;
+
+public class RateLimitExceededException extends ApiException
 {
 
-    public RateLimitExceededException()
+    public RateLimitExceededException(Metadata metadata)
     {
-        super("Rate limit reached. See: https://platform.openai.com/docs/guides/rate-limits");
+        super("Rate limit reached. See: https://platform.openai.com/docs/guides/rate-limits", metadata);
     }
 
 }

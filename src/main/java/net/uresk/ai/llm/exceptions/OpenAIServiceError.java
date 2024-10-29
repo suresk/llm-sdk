@@ -1,11 +1,13 @@
 package net.uresk.ai.llm.exceptions;
 
-public class OpenAIServiceError extends RuntimeException
+import net.uresk.ai.llm.response.Metadata;
+
+public class OpenAIServiceError extends ApiException
 {
 
-    public OpenAIServiceError()
+    public OpenAIServiceError(Metadata metadata)
     {
-        super("Server error. See status page: https://status.openai.com/");
+        super("Server error. See status page: https://status.openai.com/", metadata);
     }
 
 }

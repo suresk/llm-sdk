@@ -1,11 +1,13 @@
 package net.uresk.ai.llm.exceptions;
 
-public class InvalidAuthenticationException extends RuntimeException
+import net.uresk.ai.llm.response.Metadata;
+
+public class InvalidAuthenticationException extends ApiException
 {
 
-    public InvalidAuthenticationException()
+    public InvalidAuthenticationException(Metadata metadata)
     {
-        super("Invalid authentication - ensure you are sending the correct API key header (Authentication: Bearer <key>)");
+        super("Invalid authentication - ensure you are sending the correct API key header (Authentication: Bearer <key>)", metadata);
     }
 
 }

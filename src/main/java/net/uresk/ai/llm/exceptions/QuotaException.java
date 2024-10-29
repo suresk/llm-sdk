@@ -1,11 +1,13 @@
 package net.uresk.ai.llm.exceptions;
 
-public class QuotaException extends RuntimeException
+import net.uresk.ai.llm.response.Metadata;
+
+public class QuotaException extends ApiException
 {
 
-    public QuotaException()
+    public QuotaException(Metadata metadata)
     {
-        super("Quota exceeded - see https://platform.openai.com/account/limits");
+        super("Quota exceeded - see https://platform.openai.com/account/limits", metadata);
     }
 
 }

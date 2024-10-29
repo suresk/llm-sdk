@@ -2,6 +2,7 @@ package net.uresk.ai.llm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.uresk.ai.llm.exceptions.ApiException;
 import net.uresk.ai.llm.exceptions.ApiKeyException;
 import net.uresk.ai.llm.exceptions.GeographicException;
 import net.uresk.ai.llm.exceptions.InvalidAuthenticationException;
@@ -11,6 +12,8 @@ import net.uresk.ai.llm.exceptions.RateLimitExceededException;
 import net.uresk.ai.llm.exceptions.ServerOverloadedException;
 import net.uresk.ai.llm.request.ChatRequest;
 import net.uresk.ai.llm.response.ChatResponse;
+import net.uresk.ai.llm.response.Metadata;
+import net.uresk.ai.llm.response.RateLimitInfo;
 import net.uresk.ai.llm.utils.MapperUtil;
 
 import java.io.IOException;
@@ -53,20 +56,22 @@ public class ChatService
                 return objectMapper.readValue(httpResponse.body(), ChatResponse.class);
             }
 
+            Metadata metadata = getMetadata(httpResponse);
+
             switch (httpResponse.statusCode())
             {
                 case 401:
-                    handle401(httpResponse);
+                    handle401(httpResponse, metadata);
                 case 403:
-                    throw new GeographicException();
+                    throw new GeographicException(metadata);
                 case 429:
-                    throw new IllegalArgumentException("Rate limit exceeded");
+                    handle429(httpResponse, metadata);
                 case 500:
-                    throw new OpenAIServiceError();
+                    throw new OpenAIServiceError(metadata);
                 case 503:
-                    throw new ServerOverloadedException();
+                    throw new ServerOverloadedException(metadata);
                 default:
-                    throw new RuntimeException("Unknown error: " + httpResponse.body());
+                    throw new ApiException("Unknown error: " + httpResponse.body(), metadata);
             }
         }
         catch (IOException | InterruptedException e)
@@ -75,39 +80,70 @@ public class ChatService
         }
     }
 
-    private void handle401(HttpResponse<String> response)
+    private void handle401(HttpResponse<String> response, Metadata metadata)
     {
         String body = response.body();
 
         if (body.contains("You didn't provide an API key"))
         {
-            throw new InvalidAuthenticationException();
+            throw new InvalidAuthenticationException(metadata);
         }
         else if (body.contains("invalid_api_key"))
         {
-            throw new ApiKeyException();
+            throw new ApiKeyException(metadata);
         }
         else
         {
-            throw new RuntimeException("Unknown 401 error: " + body);
+            throw new ApiException("Unknown 401 error: " + body, metadata);
         }
     }
 
-    private void handle429(HttpResponse<String> response)
+    private String nullSafeStringHeader(HttpResponse<String> response, String header)
+    {
+        return response.headers().firstValue(header).orElse(null);
+    }
+
+    private Long nullSafeLongHeader(HttpResponse<String> response, String header)
+    {
+        String value = nullSafeStringHeader(response, header);
+        return value == null ? null : Long.parseLong(value);
+    }
+
+    private Metadata getMetadata(HttpResponse<String> response)
+    {
+        RateLimitInfo rateLimitInfo = new RateLimitInfo(
+                nullSafeLongHeader(response, "x-ratelimit-limit-requests"),
+                nullSafeLongHeader(response, "x-ratelimit-limit-tokens"),
+                nullSafeLongHeader(response, "x-ratelimit-remaining-tokens"),
+                nullSafeLongHeader(response, "x-ratelimit-remaining-requests"),
+                nullSafeLongHeader(response, "x-ratelimit-reset-tokens"),
+                nullSafeLongHeader(response, "x-ratelimit-reset-requests")
+        );
+
+        return new Metadata(
+                nullSafeStringHeader(response, "openai-organization"),
+                nullSafeLongHeader(response, "openai-processing-time"),
+                nullSafeStringHeader(response, "openai-version"),
+                nullSafeStringHeader(response, "x-request-id"),
+                rateLimitInfo
+        );
+    }
+
+    private void handle429(HttpResponse<String> response, Metadata metadata)
     {
         String body = response.body();
 
         if (body.contains("Rate limit reached for requests"))
         {
-            throw new RateLimitExceededException();
+            throw new RateLimitExceededException(metadata);
         }
         else if(body.contains("You exceeded your current quota"))
         {
-            throw new QuotaException();
+            throw new QuotaException(metadata);
         }
         else
         {
-            throw new RuntimeException("Unknown 429 error: " + body);
+            throw new ApiException("Unknown 429 error: " + body, metadata);
         }
     }
 
