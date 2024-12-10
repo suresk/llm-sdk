@@ -11,6 +11,7 @@ import net.uresk.ai.llm.exceptions.QuotaException;
 import net.uresk.ai.llm.exceptions.RateLimitExceededException;
 import net.uresk.ai.llm.exceptions.ServerOverloadedException;
 import net.uresk.ai.llm.request.ChatRequest;
+import net.uresk.ai.llm.request.ResponseFormat;
 import net.uresk.ai.llm.response.ChatResponse;
 import net.uresk.ai.llm.response.Metadata;
 import net.uresk.ai.llm.response.RateLimitInfo;
@@ -21,6 +22,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ChatService
 {
@@ -53,6 +57,12 @@ public class ChatService
 
             if (httpResponse.statusCode() < 300)
             {
+                switch (request.getResponseFormat().getType())
+                {
+                    case JSON_OBJECT:
+                    case JSON_SCHEMA:
+                        return objectMapper.readValue(httpResponse.body(), ChatResponse.class);
+                }
                 return objectMapper.readValue(httpResponse.body(), ChatResponse.class);
             }
 
@@ -109,6 +119,41 @@ public class ChatService
         return value == null ? null : Long.parseLong(value);
     }
 
+    private Long durationToMsHandler(HttpResponse<String> response, String header)
+    {
+        String value = nullSafeStringHeader(response, header);
+        return value == null ? null : parseDuration(value).toMillis();
+    }
+
+    private static Duration parseDuration(String text) {
+        // Pattern to capture the numeric value and unit (e.g., "50ms", "3s", "2m")
+        Pattern pattern = Pattern.compile("(\\d+)([a-zA-Z]+)");
+        Matcher matcher = pattern.matcher(text);
+
+        if (matcher.matches()) {
+            long amount = Long.parseLong(matcher.group(1));
+            String unit = matcher.group(2).toLowerCase();
+
+            // Determine the unit and return the appropriate Duration
+            switch (unit) {
+                case "ms":
+                    return Duration.ofMillis(amount);
+                case "s":
+                    return Duration.ofSeconds(amount);
+                case "m":
+                    return Duration.ofMinutes(amount);
+                case "h":
+                    return Duration.ofHours(amount);
+                case "d":
+                    return Duration.ofDays(amount);
+                default:
+                    throw new IllegalArgumentException("Unknown time unit: " + unit);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid duration format: " + text);
+        }
+    }
+
     private Metadata getMetadata(HttpResponse<String> response)
     {
         RateLimitInfo rateLimitInfo = new RateLimitInfo(
@@ -116,8 +161,8 @@ public class ChatService
                 nullSafeLongHeader(response, "x-ratelimit-limit-tokens"),
                 nullSafeLongHeader(response, "x-ratelimit-remaining-tokens"),
                 nullSafeLongHeader(response, "x-ratelimit-remaining-requests"),
-                nullSafeLongHeader(response, "x-ratelimit-reset-tokens"),
-                nullSafeLongHeader(response, "x-ratelimit-reset-requests")
+                durationToMsHandler(response, "x-ratelimit-reset-tokens"),
+                durationToMsHandler(response, "x-ratelimit-reset-requests")
         );
 
         return new Metadata(
@@ -157,9 +202,9 @@ public class ChatService
 
             private String apiKey;
 
-            private HttpClient httpClient = HttpClient.newHttpClient();
+            private HttpClient httpClient;
 
-            private ObjectMapper objectMapper = MapperUtil.getJsonMapper();
+            private ObjectMapper objectMapper;
 
             public Builder()
             {
@@ -189,6 +234,16 @@ public class ChatService
                 if (apiKey == null)
                 {
                     throw new IllegalArgumentException("API key is required");
+                }
+
+                if (httpClient == null)
+                {
+                    httpClient = HttpClient.newHttpClient();
+                }
+
+                if (objectMapper == null)
+                {
+                    objectMapper = MapperUtil.getJsonMapper();
                 }
 
                 return new ChatService(apiKey, httpClient, objectMapper);

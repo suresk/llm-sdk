@@ -3,8 +3,6 @@ package net.uresk.ai.llm.response;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import net.uresk.ai.llm.messages.Message;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Choice
 {

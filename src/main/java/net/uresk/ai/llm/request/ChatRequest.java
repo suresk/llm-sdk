@@ -96,7 +96,7 @@ public class ChatRequest
         return new Builder();
     }
 
-    // Builer
+    // Builder
 
     public static class Builder
     {
@@ -121,15 +121,15 @@ public class ChatRequest
             return this;
         }
 
-        public Builder userMessages(List<UserMessage> userMessages)
-        {
-            this.messages.addAll(userMessages);
-            return this;
-        }
-
         public Builder addMessage(Message message)
         {
             this.messages.add(message);
+            return this;
+        }
+
+        public Builder addMessages(List<Message> messages)
+        {
+            this.messages.addAll(messages);
             return this;
         }
 

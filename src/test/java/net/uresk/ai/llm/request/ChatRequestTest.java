@@ -3,7 +3,10 @@ package net.uresk.ai.llm.request;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.uresk.ai.llm.ChatService;
 import net.uresk.ai.llm.content.ImageContent;
+import net.uresk.ai.llm.content.TextContent;
+import net.uresk.ai.llm.messages.AssistantMessage;
 import net.uresk.ai.llm.messages.UserMessage;
 import net.uresk.ai.llm.models.OpenAI;
 import net.uresk.ai.llm.utils.MapperUtil;
@@ -41,7 +44,7 @@ public class ChatRequestTest
     @Test
     public void testSimpleMessage() throws Exception
     {
-        var req = new ChatRequest.Builder().model(OpenAI.GPT40).userMessages(List.of(new UserMessage("Hello, how are you?"))).build();
+        var req = new ChatRequest.Builder().model(OpenAI.GPT4o).addMessages(List.of(new UserMessage("Hello, how are you?"))).build();
         assertJson("/testcases/simple.json", req);
     }
 
@@ -55,7 +58,7 @@ public class ChatRequestTest
 
         UserMessage img = new UserMessage(ImageContent.fromBytes(bytes, "image/png"));
 
-        var req = new ChatRequest.Builder().model(OpenAI.GPT40).userMessages(List.of(msg, img)).build();
+        var req = new ChatRequest.Builder().model(OpenAI.GPT4o).addMessages(List.of(msg, img)).build();
         assertJson("/testcases/imagebytes.json", req);
     }
 
@@ -66,7 +69,7 @@ public class ChatRequestTest
 
         UserMessage img = new UserMessage(ImageContent.fromUrl("https://example.com/image.png"));
 
-        var req = new ChatRequest.Builder().model(OpenAI.GPT40).userMessages(List.of(msg, img)).build();
+        var req = new ChatRequest.Builder().model(OpenAI.GPT4o).addMessages(List.of(msg, img)).build();
         assertJson("/testcases/imageurl.json", req);
     }
 
